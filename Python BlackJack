@@ -1,0 +1,170 @@
+import random
+class Deck:
+
+    def __init__(self):
+        self.suits = ["♠", "♥", "♣", "♦"]
+        self.faces = ["A",2,3, 4, 5, 6, 7, 8, 9, 10, "J", "Q", "K"]
+        self.cards = []
+        for suit in self.suits:
+            for face in self.faces:
+                self.cards.append({ "suit": suit, "face": face })
+        self.next_card_index = 51
+        random.shuffle(self.cards)
+
+    def __str__(self):
+        return f"I am a deck of cards"
+    
+    def deal_card(self):
+        self.next_card_index -= 1
+        return self.cards[self.next_card_index + 1]
+  
+    def next_card(self):
+        return self.cards[self.next_card_index]
+  
+    def burn_card(self):
+        self.next_card_index -= 1
+        return f"Burn Card"
+  
+    def how_many_cards_remaining(self):
+       return {self.next_card_index + 1}
+  
+    def reshuffle(self):
+        self.next_card_index = 51
+        random.shuffle(self.cards)
+        return f"Cards reshuffled"
+        
+class BlackJack:
+
+    def __init__(self):
+        self.deck  = Deck()
+        self.set_card_values()
+        self.players_score = 0
+        self.dealers_score = 0
+        self.players_hand = []
+        self.dealers_hand = []  
+
+    def evaluate_hand(self,hand):
+        # total = hand.map {|card| card[:value]}.sum        
+        # return [total, aces(hand) ? total+10 : total ] << 0 
+        total = 0
+        results = []
+        for card in hand:
+            total+=card['value']
+        results.append(total)
+        if self.aces(hand):
+            results.append(total+10)      
+        return results
+
+    def best_hand(self,hand):
+        best = -1
+        hands = self.evaluate_hand(hand)
+        for hand in hands:
+            if (hand>best and hand < 22):
+                best = hand  
+        return best     
+
+    def deal_hand(self):
+        self.players_hand=[]
+        self.dealers_hand=[]        
+        self.players_hand.append(self.deck.deal_card())
+        self.dealers_hand.append(self.deck.deal_card())
+        self.players_hand.append(self.deck.deal_card())
+        self.dealers_hand.append(self.deck.deal_card())
+
+    def hit(self,hand):
+        card = self.deck.deal_card()
+        hand.append(card)
+
+    def has_blackjack(self, hand):
+        return self.best_hand(hand)==21 and len(hand)==2
+
+    def is_bust(self, hand):
+       return self.best_hand(hand)==-1
+
+    def not_bust(self, hand):
+       return self.best_hand(hand)!=-1
+
+    def display_hand(self, hand, who):
+        display = ''
+        if who=='player':
+            for card in hand:
+                display += self.display_card(card) + ' '
+        else:
+            display += self.display_card(hand[0])
+        return f"{display} "
+
+    def set_card_values(self):
+        for card in self.deck.cards:
+            match card["face"]:
+                case 'A': 
+                    value = 1
+                case 'K':
+                    value = 10
+                case 'Q':
+                    value = 10
+                case 'J': 
+                    value = 10
+                case _: 
+                    value = card["face"]
+            card["value"] = value
+
+    def aces(self, hand):
+        count_of_aces = 0
+        for card in hand:
+            if card['face']=='A': 
+                count_of_aces+=1
+        return count_of_aces>0        
+
+    def display_card(self, card):
+        return f"{card['face']}{card['suit']}"
+    
+    def play(self):
+        print(f"Let's play Blackjack.")
+        self.deal_hand()
+        print(f"Player's Hand: {self.display_hand(self.players_hand, 'player')}")
+        print(f"Dealer Shows: {self.display_hand(self.dealers_hand, 'dealer')}")
+
+        while self.not_bust(self.players_hand):   
+            if self.has_blackjack(self.players_hand):
+                print(f"Blackjack!")
+                break
+            players_choice = input("What would you like to do? (h)it or (s)tand? ")
+            if players_choice=='s':
+                print(f"Player Stands on {self.best_hand(self.players_hand)}")            
+                break
+            if players_choice=='h':
+                self.hit(self.players_hand)
+                print(f"Player's Hand: {self.display_hand(self.players_hand, 'player')}")        
+            if self.is_bust(self.players_hand):
+                print(f"Bust!")
+                break
+
+        print(f"Dealers's Hand: {self.display_hand(self.dealers_hand, 'player')}")
+        while self.not_bust(self.dealers_hand) and self.not_bust(self.players_hand):
+            if  self.has_blackjack(self.dealers_hand):
+                print(f"Blackjack!")
+                break
+            if self.best_hand(self.dealers_hand)<17:
+                self.hit(self.dealers_hand)
+                print(f"Dealers's Hand: {self.display_hand(self.dealers_hand, 'player')}")
+            if self.is_bust(self.dealers_hand):
+                print(f"Dealer Busts!")
+                break
+            elif self.best_hand(self.dealers_hand)>=17:
+                print(f"Dealer Stands on {self.best_hand(self.dealers_hand)}")
+                break
+            else:
+                dealers_pause = input("Press Return for dealers next card")
+
+        if self.best_hand(self.dealers_hand)<self.best_hand(self.players_hand):
+            print(f"Player Wins")
+        elif self.best_hand(self.dealers_hand)>self.best_hand(self.players_hand):
+            print(f"Dealer Wins")
+        else:
+            print(f"Push")
+###Driver code for the game mechanics
+play_game=''
+while play_game!='n':
+    game = BlackJack()
+    game.play()
+    play_game = input("Want to play again? y/n ")
